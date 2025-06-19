@@ -82,7 +82,7 @@ curl http://localhost:8888/update_ticket
 
 ### 3. 访问 Web 界面
 
-打开浏览器访问 `http://localhost:8888/tickets` 查看车票信息。
+打开浏览器访问 `http://localhost:8888/tickets/web` 查看车票信息。
 
 ## 📱 界面预览
 
@@ -160,6 +160,14 @@ GET /tickets
   ]
 }
 ```
+
+### 访问Web界面
+
+```http
+GET /tickets/web
+```
+
+返回美观的HTML页面，展示车票信息。
 
 ### 更新车票信息
 

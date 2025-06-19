@@ -38,6 +38,10 @@
 ### 核心模块
 
 - **`main.py`**: FastAPI主应用，提供Web服务和API接口
+  - `/tickets`: 获取所有车票信息的API接口
+  - `/tickets/web`: Web界面入口，返回HTML页面
+  - `/tickets/stats`: 获取统计信息的API接口
+  - `/update_ticket`: 手动更新车票信息的接口
 - **`config.py`**: 系统配置文件，包含邮箱、数据库、服务器等配置
 - **`ticket/`**: 车票管理核心模块
   - `models.py`: 数据库模型，定义车票数据结构和数据库操作
