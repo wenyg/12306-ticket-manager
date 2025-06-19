@@ -20,7 +20,7 @@
 1. Fork项目到您的GitHub账户
 2. 克隆您的fork到本地：
    ```bash
-   git clone https://github.com/your-username/12306-ticket-manager.git
+   git clone https://github.com/wenyg/12306-ticket-manager.git
    cd 12306-ticket-manager
    ```
 

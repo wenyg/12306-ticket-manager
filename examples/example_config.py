@@ -8,7 +8,7 @@
 EMAIL_CONFIG = {
     # 163邮箱配置
     "imap_host": "imap.163.com",
-    "email_user": "your-email@163.com",
+    "email_user": "wenyg@163.com",
     "email_pwd": "your-password",  # 使用邮箱授权码，不是登录密码
     "folder_name": "12306"
 }
@@ -17,7 +17,7 @@ EMAIL_CONFIG = {
 EMAIL_CONFIG_QQ = {
     # QQ邮箱配置
     "imap_host": "imap.qq.com",
-    "email_user": "your-email@qq.com",
+    "email_user": "wenyg@qq.com",
     "email_pwd": "your-authorization-code",  # QQ邮箱授权码
     "folder_name": "12306"
 }
@@ -25,7 +25,7 @@ EMAIL_CONFIG_QQ = {
 EMAIL_CONFIG_GMAIL = {
     # Gmail配置
     "imap_host": "imap.gmail.com",
-    "email_user": "your-email@gmail.com",
+    "email_user": "wenyg@gmail.com",
     "email_pwd": "your-app-password",  # Gmail应用专用密码
     "folder_name": "12306"
 }
@@ -33,7 +33,7 @@ EMAIL_CONFIG_GMAIL = {
 EMAIL_CONFIG_OUTLOOK = {
     # Outlook配置
     "imap_host": "outlook.office365.com",
-    "email_user": "your-email@outlook.com",
+    "email_user": "wenyg@outlook.com",
     "email_pwd": "your-password",
     "folder_name": "12306"
 }

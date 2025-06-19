@@ -30,7 +30,7 @@
 ### 1. 克隆项目
 
 ```bash
-git clone https://github.com/your-username/12306-ticket-manager.git
+git clone https://github.com/wenyg/12306-ticket-manager.git
 cd 12306-ticket-manager
 ```
 
@@ -180,8 +180,8 @@ GET /update_ticket
 
 ## 📞 联系方式
 
-- 项目主页: https://github.com/your-username/12306-ticket-manager
-- 问题反馈: https://github.com/your-username/12306-ticket-manager/issues
+- 项目主页: https://github.com/wenyg/12306-ticket-manager
+- 问题反馈: https://github.com/wenyg/12306-ticket-manager/issues
 
 ---
 
