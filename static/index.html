@@ -1,0 +1,1375 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>阳光的火车票</title>
+    
+    <!-- iOS添加到桌面相关 -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="阳光的火车票">
+    <link rel="apple-touch-icon" href="https://www.winn.cc/d/ticket/ticket.png">
+    <link rel="apple-touch-startup-image" href="https://www.winn.cc/d/ticket/ticket.png">
+    
+    <!-- 微信分享相关 -->
+    <meta itemprop="name" content="车票信息管理系统">
+    <meta itemprop="description" content="查看和管理您的车票信息">
+    <meta itemprop="image" content="https://www.winn.cc/d/ticket/ticket.png">
+    
+    <!-- 微信分享卡片 -->
+    <meta property="og:title" content="阳光的火车票">
+    <meta property="og:description" content="查看阳光的车票信息">
+    <meta property="og:image" content="https://www.winn.cc/d/ticket/ticket.png">
+    <meta property="og:url" content="https://api.winn.cc/tickets">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            padding-bottom: 80px;
+            height: 100vh;
+            overflow-x: hidden;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            flex-shrink: 0;
+        }
+
+        .content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+            width: 100%;
+            box-sizing: border-box;
+            min-height: calc(100vh - 80px - 53px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+        }
+
+        .page {
+            display: none;
+            animation: fadeIn 0.3s ease;
+            width: 100%;
+            max-width: 100%; /* 修改这里，移除最大宽度限制 */
+            margin: 0 auto;
+            padding: 0 8px; /* 减少两侧padding */
+            box-sizing: border-box;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 日历样式 */
+        .calendar-container {
+            margin-bottom: 20px;
+            width: 100%;
+            max-width: 400px; /* 添加最大宽度限制 */
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .calendar {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            overflow: hidden;
+            width: 100%;
+        }
+
+        .calendar-header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 12px; /* 减小内边距 */
+            text-align: center;
+            font-weight: bold;
+            position: relative;
+            z-index: 1;
+        }
+
+        .calendar-nav {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+            padding: 5px 10px;
+            border-radius: 5px;
+            transition: background 0.2s;
+        }
+
+        .calendar-nav:hover {
+            background: rgba(255,255,255,0.2);
+        }
+
+        .calendar-weekdays {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            background: #f8f9fa;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+
+        .calendar-day-header {
+            padding: 8px 5px; /* 减小内边距 */
+            text-align: center;
+            font-size: 11px; /* 减小字体大小 */
+            color: #666;
+            font-weight: bold;
+        }
+
+        .calendar-days {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            background: white;
+            position: relative;
+            z-index: 0;
+        }
+
+        .calendar-day {
+            aspect-ratio: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #eee;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+            font-size: 13px; /* 减小字体大小 */
+        }
+
+        .calendar-day:hover {
+            background: #f0f8ff;
+        }
+
+        .calendar-day.other-month {
+            color: #ccc;
+        }
+
+        .calendar-day.today {
+            background: #e3f2fd;
+            color: #1976d2;
+            font-weight: bold;
+        }
+
+        .calendar-day.has-ticket {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            font-weight: bold;
+        }
+
+        .calendar-day.past-ticket {
+            background: #e0e0e0;
+            color: #666;
+            font-weight: bold;
+        }
+
+        .calendar-day.future-ticket {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            font-weight: bold;
+        }
+
+        /* 添加新的状态样式 */
+        .calendar-day.refunded-only {
+            background: linear-gradient(135deg, #ff5252 0%, #ff1744 100%);
+            color: white;
+            font-weight: bold;
+        }
+
+        .calendar-day.mixed-tickets {
+            background: linear-gradient(135deg, #ffd740 0%, #ffc400 100%);
+            color: white;
+            font-weight: bold;
+        }
+
+        .ticket-count {
+            font-size: 9px; /* 减小字体大小 */
+            background: rgba(255,255,255,0.8);
+            color: #333;
+            border-radius: 8px;
+            padding: 1px 3px; /* 减小内边距 */
+            margin-top: 1px;
+        }
+
+        /* 车票卡片样式 */
+        .ticket-card {
+            background: white;
+            border-radius: 12px;
+            margin-bottom: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            overflow: hidden;
+            border-left: 4px solid #4facfe;
+            padding: 8px 0;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .ticket-header {
+            padding: 0 12px 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .train-number {
+            font-size: 15px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .route {
+            padding: 0 12px;
+            font-size: 14px;
+            color: #333;
+            margin-bottom: 4px;
+        }
+
+        .route-arrow {
+            margin: 0 8px;
+            color: #666;
+        }
+
+        .ticket-details {
+            padding: 4px 12px 0;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 4px;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .ticket-details div {
+            line-height: 1.3;
+        }
+
+        .status-badge {
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        .status-normal {
+            background: #e8f5e8;
+            color: #2e7d32;
+        }
+
+        .status-waiting {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+
+        .status-refunded {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        /* 所有订单页面 */
+        .order-item {
+            background: white;
+            border-radius: 12px;
+            margin-bottom: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            overflow: hidden;
+            border-left: 4px solid #4facfe;
+            padding: 8px 0;
+        }
+
+        .order-header {
+            padding: 0 12px 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .order-train {
+            font-size: 15px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .order-route {
+            padding: 0 12px;
+            font-size: 14px;
+            color: #333;
+            margin-bottom: 4px;
+        }
+
+        .order-content {
+            padding: 4px 12px 0;
+            font-size: 12px;
+            color: #666;
+            line-height: 1.3;
+        }
+
+        .order-details {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 4px;
+        }
+
+        /* 修改统计卡片网格布局 */
+        .stats-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            width: 100%;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+            width: 100%;
+            padding: 0 10px;
+            box-sizing: border-box;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 6px;  /* 进一步减小内边距 */
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-top: 3px solid #4facfe;
+            width: 100%;
+            box-sizing: border-box;
+            aspect-ratio: 2;  /* 进一步修改宽高比，使卡片更扁 */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: transform 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .stat-number {
+            font-size: 15px;  /* 进一步减小字体大小 */
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 1px;  /* 进一步减小间距 */
+        }
+
+        .stat-label {
+            font-size: 10px;  /* 进一步减小字体大小 */
+            color: #666;
+        }
+
+        /* 底部导航 */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            border-top: 1px solid #eee;
+            display: flex;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+        }
+
+        .nav-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 8px 0;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #999;
+        }
+
+        .nav-item.active {
+            color: #4facfe;
+        }
+
+        .nav-icon {
+            width: 24px;
+            height: 24px;
+            margin-bottom: 4px;
+            fill: currentColor;
+        }
+
+        .nav-label {
+            font-size: 11px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 10px;
+            color: #666;
+        }
+
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #999;
+        }
+
+        .empty-icon {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 15px;
+            opacity: 0.3;
+        }
+
+        /* 弹窗样式 */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: white;
+            border-radius: 12px;
+            width: 95%;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+            animation: modalSlideIn 0.3s ease;
+            box-sizing: border-box;
+        }
+
+        @keyframes modalSlideIn {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal-header {
+            padding: 12px 15px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 20px;
+            color: #999;
+            cursor: pointer;
+            padding: 5px;
+        }
+
+        .modal-content {
+            padding: 12px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .modal-content .ticket-card {
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        /* 修改所有车票页面的样式 */
+        #ordersPage {
+            padding: 0;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            scroll-behavior: smooth;
+        }
+
+        #allOrdersCalendars {
+            padding: 12px;
+        }
+
+        .stats-section-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+            margin: 0px 0 10px;
+            padding: 0 10px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .top-trains {
+            width: 100%;
+            padding: 0 10px;
+            box-sizing: border-box;
+        }
+
+        .train-stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .train-stat-info {
+            flex: 1;
+        }
+
+        .train-stat-number {
+            font-size: 15px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .train-stat-route {
+            font-size: 13px;
+            color: #666;
+            margin-top: 4px;
+        }
+
+        .train-stat-details {
+            font-size: 12px;
+            color: #666;
+            margin-top: 4px;
+        }
+
+        .train-stat-count {
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: bold;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .train-stat-avg-price {
+            font-size: 11px;
+            color: #666;
+            white-space: nowrap;
+        }
+
+        .seat-stats {
+            width: 100%;
+            padding: 0 10px;
+            box-sizing: border-box;
+        }
+
+        .seat-stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .seat-stat-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .seat-stat-type {
+            font-size: 15px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .seat-stat-count {
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: bold;
+        }
+
+        .seat-stat-percentage {
+            font-size: 13px;
+            color: #666;
+        }
+
+        .seat-stat-avg-price {
+            font-size: 11px;
+            color: #666;
+            white-space: nowrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <span id="headerTitle">即将出行</span>
+    </div>
+
+    <!-- 添加弹窗结构 -->
+    <div class="modal-overlay" id="ticketModal">
+        <div class="modal">
+            <div class="modal-header">
+                <span class="modal-title" id="modalTitle">车票信息</span>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-content" id="modalContent"></div>
+        </div>
+    </div>
+
+    <div class="content">
+        <!-- 即将出行页面 -->
+        <div id="upcomingPage" class="page active">
+            <!-- 日历 -->
+            <div class="calendar-container">
+                <div class="calendar">
+                    <div class="calendar-header">
+                        <button class="calendar-nav" onclick="changeMonth(-1)">‹</button>
+                        <span id="currentMonth"></span>
+                        <button class="calendar-nav" onclick="changeMonth(1)">›</button>
+                    </div>
+                    <div class="calendar-weekdays">
+                        <div class="calendar-day-header">一</div>
+                        <div class="calendar-day-header">二</div>
+                        <div class="calendar-day-header">三</div>
+                        <div class="calendar-day-header">四</div>
+                        <div class="calendar-day-header">五</div>
+                        <div class="calendar-day-header">六</div>
+                        <div class="calendar-day-header">日</div>
+                    </div>
+                    <div class="calendar-days" id="calendarDays"></div>
+                </div>
+            </div>
+
+            <div id="upcomingTickets" class="loading">加载中...</div>
+        </div>
+
+        <!-- 所有订单页面 -->
+        <div id="ordersPage" class="page">
+            <div id="allOrdersCalendars"></div>
+        </div>
+
+        <!-- 统计信息页面 -->
+        <div id="statsPage" class="page">
+            <div class="stats-section">
+                <!-- 第一栏：统计卡片 -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalTickets">0</div>
+                        <div class="stat-label">总车票数</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="waitingTickets">0%</div>
+                        <div class="stat-label">候补比例</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalAmount">¥0</div>
+                        <div class="stat-label">总金额</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="avgPrice">¥0</div>
+                        <div class="stat-label">平均票价</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalFees">¥0</div>
+                        <div class="stat-label">手续费</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="refundCount">0</div>
+                        <div class="stat-label">退票次数</div>
+                    </div>
+                </div>
+
+                <!-- 第二栏：Top5班次 -->
+                <div class="stats-section-title">Top5班次</div>
+                <div class="top-trains" id="topTrains"></div>
+
+                <!-- 第三栏：席位统计 -->
+                <div class="stats-section-title">席位统计</div>
+                <div class="seat-stats" id="seatStats"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 底部导航 -->
+    <div class="bottom-nav">
+        <div class="nav-item active" onclick="switchPage('upcoming')">
+            <svg class="nav-icon" viewBox="0 0 24 24">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+            </svg>
+            <span class="nav-label">即将出行</span>
+        </div>
+        <div class="nav-item" onclick="switchPage('orders')">
+            <svg class="nav-icon" viewBox="0 0 24 24">
+                <path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-1 9H9V9h10v2zm-4 4H9v-2h6v2zm4-8H9V5h10v2z"/>
+            </svg>
+            <span class="nav-label">所有车票</span>
+        </div>
+        <div class="nav-item" onclick="switchPage('stats')">
+            <svg class="nav-icon" viewBox="0 0 24 24">
+                <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/>
+            </svg>
+            <span class="nav-label">统计信息</span>
+        </div>
+    </div>
+
+    <script>
+        let ticketsData = [];
+        let currentDate = new Date();
+        let currentPage = 'upcoming';
+
+        // 修改页面切换函数
+        function switchPage(page) {
+            const pages = ['upcoming', 'orders', 'stats'];
+            const titles = ['即将出行', '所有车票', '统计信息'];
+            
+            pages.forEach(p => {
+                document.getElementById(p + 'Page').classList.remove('active');
+                document.querySelector(`[onclick="switchPage('${p}')"]`).classList.remove('active');
+            });
+            
+            document.getElementById(page + 'Page').classList.add('active');
+            document.querySelector(`[onclick="switchPage('${page}')"]`).classList.add('active');
+            document.getElementById('headerTitle').textContent = titles[pages.indexOf(page)];
+            
+            currentPage = page;
+
+            // 如果切换到订单页面，初始化订单日历
+            if (page === 'orders') {
+                renderCalendarOrders();
+            }
+            // 如果切换到统计页面，渲染统计信息
+            else if (page === 'stats') {
+                renderStats();
+            }
+
+            // 如果切换到即将出行或统计信息页面，滚动到顶部
+            if (page === 'upcoming' || page === 'stats') {
+                window.scrollTo({
+                    top: 0,
+                    behavior: 'smooth'
+                });
+            }
+        }
+
+        // 格式化日期时间
+        function formatDateTime(dateTimeStr) {
+            const date = new Date(dateTimeStr);
+            return date.toLocaleString('zh-CN', {
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        function formatDate(dateTimeStr) {
+            const date = new Date(dateTimeStr);
+            return date.toLocaleDateString('zh-CN', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            });
+        }
+
+        // 获取状态标签
+        function getStatusBadge(ticket) {
+            let statusClass = 'status-normal';
+            let statusText = '正常';
+            
+            if (ticket.is_refunded) {
+                statusClass = 'status-refunded';
+                statusText = '已退票';
+            } else if (ticket.is_waiting) {
+                statusClass = 'status-waiting';
+                statusText = '候补得票';
+            }
+            
+            return `<span class="status-badge ${statusClass}">${statusText}</span>`;
+        }
+
+        // 日历相关函数
+        function renderCalendar() {
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+            
+            document.getElementById('currentMonth').textContent = 
+                `${year}年${month + 1}月`;
+            
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            // 获取1号是星期几（0-6，0是周日）
+            let firstDayWeek = firstDay.getDay();
+            // 将周日的0改为7，并减1使周一为0
+            firstDayWeek = firstDayWeek === 0 ? 6 : firstDayWeek - 1;
+            const daysInMonth = lastDay.getDate();
+            
+            let calendarHTML = '';
+            
+            // 上个月的尾部日期
+            const prevMonth = new Date(year, month, 0);
+            const prevMonthDays = prevMonth.getDate();
+            for (let i = 0; i < firstDayWeek; i++) {
+                const day = prevMonthDays - firstDayWeek + i + 1;
+                calendarHTML += `<div class="calendar-day other-month">${day}</div>`;
+            }
+            
+            // 当前月的日期
+            const today = new Date();
+            const now = new Date();
+            
+            for (let day = 1; day <= daysInMonth; day++) {
+                const currentDay = new Date(year, month, day);
+                const isToday = currentDay.toDateString() === today.toDateString();
+                
+                // 检查这一天是否有车票
+                const dayTickets = ticketsData.filter(ticket => {
+                    const ticketDate = new Date(ticket.departure_time);
+                    return ticketDate.getFullYear() === year && 
+                           ticketDate.getMonth() === month && 
+                           ticketDate.getDate() === day &&
+                           !ticket.is_refunded;
+                });
+                
+                let dayClass = 'calendar-day';
+                if (isToday) dayClass += ' today';
+                
+                if (dayTickets.length > 0) {
+                    const hasPastTicket = dayTickets.some(ticket => new Date(ticket.departure_time) < now);
+                    const hasFutureTicket = dayTickets.some(ticket => new Date(ticket.departure_time) >= now);
+                    
+                    if (hasPastTicket) {
+                        dayClass += ' past-ticket';
+                    }
+                    if (hasFutureTicket) {
+                        dayClass += ' future-ticket';
+                    }
+                }
+                
+                const ticketCountHTML = dayTickets.length > 0 ? 
+                    `<div class="ticket-count">${dayTickets.length}</div>` : '';
+                
+                calendarHTML += `
+                    <div class="${dayClass}" onclick="showDayTickets(${year}, ${month}, ${day})">
+                        ${day}
+                        ${ticketCountHTML}
+                    </div>`;
+            }
+            
+            // 下个月的开始日期
+            const totalCells = Math.ceil((firstDayWeek + daysInMonth) / 7) * 7;
+            const remainingDays = totalCells - (firstDayWeek + daysInMonth);
+            for (let day = 1; day <= remainingDays; day++) {
+                calendarHTML += `<div class="calendar-day other-month">${day}</div>`;
+            }
+            
+            document.getElementById('calendarDays').innerHTML = calendarHTML;
+        }
+
+        // 显示指定日期的车票信息
+        function showDayTickets(year, month, day) {
+            const selectedDate = new Date(year, month, day);
+            const dayTickets = ticketsData.filter(ticket => {
+                const ticketDate = new Date(ticket.departure_time);
+                return ticketDate.getFullYear() === year && 
+                       ticketDate.getMonth() === month && 
+                       ticketDate.getDate() === day &&
+                       !ticket.is_refunded;
+            });
+
+            if (dayTickets.length === 0) {
+                return; // 如果没有车票，不显示弹窗
+            }
+
+            const modalTitle = document.getElementById('modalTitle');
+            const modalContent = document.getElementById('modalContent');
+            
+            modalTitle.textContent = `${year}年${month + 1}月${day}日 车票信息`;
+            
+            modalContent.innerHTML = dayTickets.map(ticket => `
+                <div class="ticket-card">
+                    <div class="ticket-header">
+                        <span class="train-number">${ticket.train_number}</span>
+                        ${getStatusBadge(ticket)}
+                    </div>
+                    <div class="route">
+                        ${ticket.departure_station}<span class="route-arrow">→</span>${ticket.arrival_station}
+                    </div>
+                    <div class="ticket-details">
+                        <div>出发时间<br>${formatDateTime(ticket.departure_time)}</div>
+                        <div>座位信息<br>${ticket.carriage_number}${ticket.seat_number}</div>
+                        <div>席别<br>${ticket.seat_type}</div>
+                        <div>票价<br>¥${ticket.price}</div>
+                    </div>
+                </div>
+            `).join('');
+
+            document.getElementById('ticketModal').classList.add('active');
+        }
+
+        // 关闭弹窗
+        function closeModal() {
+            document.getElementById('ticketModal').classList.remove('active');
+        }
+
+        // 点击弹窗外部关闭弹窗
+        document.getElementById('ticketModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+
+        function changeMonth(direction) {
+            currentDate.setMonth(currentDate.getMonth() + direction);
+            renderCalendar();
+        }
+
+        // 修改订单日历相关函数
+        function renderCalendarOrders() {
+            const container = document.getElementById('allOrdersCalendars');
+            container.innerHTML = '';
+
+            // 获取所有车票的年份和月份
+            const months = new Set();
+            ticketsData.forEach(ticket => {
+                const date = new Date(ticket.departure_time);
+                months.add(`${date.getFullYear()}-${date.getMonth()}`);
+            });
+
+            // 按时间正序排序（最早的月份在前）
+            const sortedMonths = Array.from(months).sort((a, b) => {
+                const [yearA, monthA] = a.split('-').map(Number);
+                const [yearB, monthB] = b.split('-').map(Number);
+                return yearA === yearB ? monthA - monthB : yearA - yearB;
+            });
+
+            // 为每个月创建日历
+            sortedMonths.forEach((monthStr, index) => {
+                const [year, month] = monthStr.split('-').map(Number);
+                const calendarHTML = createMonthCalendar(year, month);
+                container.innerHTML += calendarHTML;
+            });
+
+            // 滚动到当前月份
+            const currentDate = new Date();
+            const currentYear = currentDate.getFullYear();
+            const currentMonth = currentDate.getMonth();
+            const currentCalendar = document.getElementById(`calendar-${currentYear}-${currentMonth}`);
+            
+            if (currentCalendar) {
+                setTimeout(() => {
+                    currentCalendar.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 100);
+            }
+        }
+
+        function createMonthCalendar(year, month) {
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            let firstDayWeek = firstDay.getDay();
+            firstDayWeek = firstDayWeek === 0 ? 6 : firstDayWeek - 1;
+            const daysInMonth = lastDay.getDate();
+            
+            let calendarHTML = `
+                <div class="calendar-container">
+                    <div class="calendar" id="calendar-${year}-${month}">
+                        <div class="calendar-header">
+                            <span>${year}年${month + 1}月</span>
+                        </div>
+                        <div class="calendar-weekdays">
+                            <div class="calendar-day-header">一</div>
+                            <div class="calendar-day-header">二</div>
+                            <div class="calendar-day-header">三</div>
+                            <div class="calendar-day-header">四</div>
+                            <div class="calendar-day-header">五</div>
+                            <div class="calendar-day-header">六</div>
+                            <div class="calendar-day-header">日</div>
+                        </div>
+                        <div class="calendar-days">`;
+            
+            // 上个月的尾部日期
+            const prevMonth = new Date(year, month, 0);
+            const prevMonthDays = prevMonth.getDate();
+            for (let i = 0; i < firstDayWeek; i++) {
+                const day = prevMonthDays - firstDayWeek + i + 1;
+                calendarHTML += `<div class="calendar-day other-month">${day}</div>`;
+            }
+            
+            // 当前月的日期
+            const today = new Date();
+            
+            for (let day = 1; day <= daysInMonth; day++) {
+                const currentDay = new Date(year, month, day);
+                const isToday = currentDay.toDateString() === today.toDateString();
+                
+                // 检查这一天是否有车票
+                const dayTickets = ticketsData.filter(ticket => {
+                    const ticketDate = new Date(ticket.departure_time);
+                    return ticketDate.getFullYear() === year && 
+                           ticketDate.getMonth() === month && 
+                           ticketDate.getDate() === day;
+                });
+                
+                let dayClass = 'calendar-day';
+                if (isToday) dayClass += ' today';
+                
+                // 根据车票状态添加不同的样式
+                if (dayTickets.length > 0) {
+                    const hasRefunded = dayTickets.some(ticket => ticket.is_refunded);
+                    const hasNormal = dayTickets.some(ticket => !ticket.is_refunded);
+                    
+                    if (hasRefunded && hasNormal) {
+                        dayClass += ' mixed-tickets';
+                    } else if (hasRefunded) {
+                        dayClass += ' refunded-only';
+                    } else {
+                        dayClass += ' has-ticket';
+                    }
+                }
+                
+                const ticketCountHTML = dayTickets.length > 0 ? 
+                    `<div class="ticket-count">${dayTickets.length}</div>` : '';
+                
+                calendarHTML += `
+                    <div class="${dayClass}" onclick="showDayTicketsOrders(${year}, ${month}, ${day})">
+                        ${day}
+                        ${ticketCountHTML}
+                    </div>`;
+            }
+            
+            // 下个月的开始日期
+            const totalCells = Math.ceil((firstDayWeek + daysInMonth) / 7) * 7;
+            const remainingDays = totalCells - (firstDayWeek + daysInMonth);
+            for (let day = 1; day <= remainingDays; day++) {
+                calendarHTML += `<div class="calendar-day other-month">${day}</div>`;
+            }
+            
+            calendarHTML += `
+                        </div>
+                    </div>
+                </div>`;
+            
+            return calendarHTML;
+        }
+
+        function showDayTicketsOrders(year, month, day) {
+            const selectedDate = new Date(year, month, day);
+            const dayTickets = ticketsData.filter(ticket => {
+                const ticketDate = new Date(ticket.departure_time);
+                return ticketDate.getFullYear() === year && 
+                       ticketDate.getMonth() === month && 
+                       ticketDate.getDate() === day;
+            });
+
+            if (dayTickets.length === 0) {
+                return;
+            }
+
+            const modalTitle = document.getElementById('modalTitle');
+            const modalContent = document.getElementById('modalContent');
+            
+            modalTitle.textContent = `${year}年${month + 1}月${day}日 车票信息`;
+            
+            modalContent.innerHTML = dayTickets.map(ticket => `
+                <div class="ticket-card">
+                    <div class="ticket-header">
+                        <span class="train-number">${ticket.train_number}</span>
+                        ${getStatusBadge(ticket)}
+                    </div>
+                    <div class="route">
+                        ${ticket.departure_station}<span class="route-arrow">→</span>${ticket.arrival_station}
+                    </div>
+                    <div class="ticket-details">
+                        <div>出发时间<br>${formatDateTime(ticket.departure_time)}</div>
+                        <div>座位信息<br>${ticket.carriage_number}${ticket.seat_number}</div>
+                        <div>席别<br>${ticket.seat_type}</div>
+                        <div>票价<br>¥${ticket.price}</div>
+                    </div>
+                </div>
+            `).join('');
+
+            document.getElementById('ticketModal').classList.add('active');
+        }
+
+        // 渲染统计信息
+        function renderStats() {
+            // 过滤出未退票的数据
+            const validTickets = ticketsData.filter(ticket => !ticket.is_refunded);
+            
+            // 计算总车票数（不包括退票）
+            const totalTickets = validTickets.length;
+            document.getElementById('totalTickets').textContent = totalTickets;
+
+            // 计算候补比例
+            const waitingTickets = validTickets.filter(ticket => ticket.is_waiting).length;
+            const waitingPercentage = totalTickets > 0 ? ((waitingTickets / totalTickets) * 100).toFixed(1) : 0;
+            document.getElementById('waitingTickets').textContent = `${waitingPercentage}%`;
+
+            // 计算总金额（不包括退票）
+            const totalAmount = validTickets.reduce((sum, ticket) => sum + ticket.price, 0);
+            document.getElementById('totalAmount').textContent = `¥${totalAmount.toFixed(2)}`;
+
+            // 计算平均票价（不包括退票）
+            const avgPrice = totalAmount / totalTickets;
+            document.getElementById('avgPrice').textContent = `¥${avgPrice.toFixed(2)}`;
+
+            // 计算手续费（包括退票的手续费）
+            const totalFees = ticketsData.reduce((sum, ticket) => sum + (ticket.service_fee || 0), 0);
+            document.getElementById('totalFees').textContent = `¥${totalFees.toFixed(2)}`;
+
+            // 计算退票次数
+            const refundCount = ticketsData.filter(ticket => ticket.is_refunded).length;
+            document.getElementById('refundCount').textContent = refundCount;
+
+            // 计算热门班次（不包括退票）
+            const trainStats = {};
+            validTickets.forEach(ticket => {
+                // 只使用车次号作为key，不再包含起终点
+                const key = ticket.train_number;
+                if (!trainStats[key]) {
+                    trainStats[key] = {
+                        count: 0,
+                        totalPrice: 0,
+                        routes: new Set() // 使用Set来存储不同的路线
+                    };
+                }
+                trainStats[key].count++;
+                trainStats[key].totalPrice += ticket.price;
+                // 添加路线到Set中
+                trainStats[key].routes.add(`${ticket.departure_station}-${ticket.arrival_station}`);
+            });
+
+            const topTrains = Object.entries(trainStats)
+                .sort((a, b) => b[1].count - a[1].count)
+                .slice(0, 5);
+
+            const topTrainsHTML = topTrains.map(([trainNumber, stats]) => {
+                const avgPrice = stats.totalPrice / stats.count;
+                // 将路线Set转换为数组并排序
+                const routes = Array.from(stats.routes).sort();
+                // 如果路线超过3条，只显示前3条，其余用"等"表示
+                const displayRoutes = routes.length > 3 
+                    ? routes.slice(0, 3).join('、') + '等' 
+                    : routes.join('、');
+                
+                return `
+                    <div class="train-stat-card">
+                        <div class="train-stat-info">
+                            <div class="train-stat-number">${trainNumber}</div>
+                            <div class="train-stat-route">${displayRoutes}</div>
+                            <div class="train-stat-details">平均票价：¥${avgPrice.toFixed(2)}</div>
+                        </div>
+                        <div class="train-stat-count">
+                            ${stats.count}次
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            document.getElementById('topTrains').innerHTML = topTrainsHTML;
+
+            // 计算席位统计（不包括退票）
+            const seatStats = {};
+            validTickets.forEach(ticket => {
+                if (!seatStats[ticket.seat_type]) {
+                    seatStats[ticket.seat_type] = {
+                        count: 0,
+                        totalPrice: 0
+                    };
+                }
+                seatStats[ticket.seat_type].count++;
+                seatStats[ticket.seat_type].totalPrice += ticket.price;
+            });
+
+            const seatStatsHTML = Object.entries(seatStats)
+                .sort((a, b) => b[1].count - a[1].count)
+                .map(([type, stats]) => {
+                    const percentage = ((stats.count / totalTickets) * 100).toFixed(1);
+                    const avgPrice = stats.totalPrice / stats.count;
+                    return `
+                        <div class="seat-stat-card">
+                            <div class="seat-stat-info">
+                                <div class="seat-stat-type">${type}</div>
+                                <div class="seat-stat-percentage">${percentage}%</div>
+                                <div class="seat-stat-avg-price">平均：¥${avgPrice.toFixed(2)}</div>
+                            </div>
+                            <div class="seat-stat-count">${stats.count}张</div>
+                        </div>
+                    `;
+                }).join('');
+
+            document.getElementById('seatStats').innerHTML = seatStatsHTML;
+        }
+
+        // 加载车票数据
+        async function loadTickets() {
+            try {
+                const response = await fetch('/tickets');
+                const data = await response.json();
+                
+                if (data.tickets) {
+                    ticketsData = data.tickets;
+                    console.log('车票数据:', ticketsData);
+                    renderCalendar();
+                    renderUpcomingTickets();
+                    renderCalendarOrders();
+                    // 如果当前在统计页面，更新统计信息
+                    if (currentPage === 'stats') {
+                        renderStats();
+                    }
+                } else {
+                    throw new Error('数据格式错误');
+                }
+            } catch (error) {
+                console.error('加载数据失败:', error);
+                showError();
+            }
+        }
+
+        // 设置每小时自动刷新数据
+        function startAutoRefresh() {
+            // 每小时（3600000毫秒）自动刷新一次数据
+            setInterval(loadTickets, 10*60*1000);
+            console.log('已设置每小时自动刷新数据');
+        }
+
+        function showError() {
+            const errorHTML = '<div class="error">加载失败，请检查网络连接</div>';
+            document.getElementById('upcomingTickets').innerHTML = errorHTML;
+            document.getElementById('allOrders').innerHTML = errorHTML;
+        }
+
+        // 计算时间差并返回人类可读的格式
+        function getTimeUntilDeparture(departureTime) {
+            const now = new Date();
+            const departure = new Date(departureTime);
+            const diff = departure - now;
+            
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            
+            if (days > 0) {
+                return `还有 ${days} 天 ${hours} 小时`;
+            } else if (hours > 0) {
+                return `还有 ${hours} 小时 ${minutes} 分钟`;
+            } else {
+                return `还有 ${minutes} 分钟`;
+            }
+        }
+
+        // 渲染即将出行的车票
+        function renderUpcomingTickets() {
+            const now = new Date();
+            const upcomingTickets = ticketsData.filter(ticket => {
+                const departureTime = new Date(ticket.departure_time);
+                return departureTime > now && !ticket.is_refunded;
+            }).sort((a, b) => new Date(a.departure_time) - new Date(b.departure_time));
+
+            const container = document.getElementById('upcomingTickets');
+            
+            if (upcomingTickets.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <svg class="empty-icon" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                        </svg>
+                        <div>暂无即将出行的车票</div>
+                    </div>`;
+                return;
+            }
+
+            // 只显示最近的一张车票
+            const nextTicket = upcomingTickets[0];
+            container.innerHTML = `
+                <div class="ticket-card">
+                    <div class="ticket-header">
+                        <span class="train-number">${nextTicket.train_number}</span>
+                        ${getStatusBadge(nextTicket)}
+                    </div>
+                    <div class="route">
+                        ${nextTicket.departure_station}<span class="route-arrow">→</span>${nextTicket.arrival_station}
+                    </div>
+                    <div class="ticket-details">
+                        <div>出发时间<br>${formatDateTime(nextTicket.departure_time)}</div>
+                        <div>座位信息<br>${nextTicket.carriage_number}${nextTicket.seat_number}</div>
+                        <div>席别<br>${nextTicket.seat_type}</div>
+                        <div>票价<br>¥${nextTicket.price}</div>
+                    </div>
+                    <div style="text-align: center; margin-top: 8px; padding: 8px; background: #f5f5f5; border-radius: 4px; color: #666; font-size: 13px;">
+                        ${getTimeUntilDeparture(nextTicket.departure_time)}
+                    </div>
+                </div>
+            `;
+
+            // 每分钟更新一次时间差
+            setTimeout(renderUpcomingTickets, 60000);
+        }
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 先初始化日历显示
+            renderCalendar();
+            // 然后加载数据
+            loadTickets();
+            // 启动每小时自动刷新
+            startAutoRefresh();
+        });
+    </script>
+</body>
+</html>
