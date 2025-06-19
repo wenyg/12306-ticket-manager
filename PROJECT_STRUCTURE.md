@@ -10,6 +10,10 @@
 │   └── mail.py                  # 邮件处理模块
 ├── 📁 static/                    # 静态文件
 │   └── index.html               # Web界面
+├── 📁 assert/                    # 项目截图
+│   ├── image.png                # 主界面截图
+│   ├── image1.png               # 车票详情截图
+│   └── image2.png               # 统计信息截图
 ├── 📁 docs/                      # 文档
 │   └── API.md                   # API文档
 ├── 📁 examples/                  # 示例
@@ -43,6 +47,13 @@
 ### 静态文件
 
 - **`static/index.html`**: 美观的Web界面，支持移动端访问
+
+### 项目截图
+
+- **`assert/`**: 项目界面截图文件夹
+  - `image.png`: 主界面截图，展示系统整体布局
+  - `image1.png`: 车票详情页面截图，展示车票信息详情
+  - `image2.png`: 统计信息页面截图，展示数据统计功能
 
 ### 文档
 
