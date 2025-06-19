@@ -9,7 +9,7 @@ from bs4 import BeautifulSoup
 import logging
 from ticket.ticket_parser import parse_ticket_info, parse_refund_info, clean_text_content, validate_ticket_info
 from ticket.models import TicketDB
-from config import EMAIL_CONFIG, PASSENGER_FILTER, MAIL_CONFIG
+from config import EMAIL_CONFIG, PASSENGER_FILTER, MAIL_CONFIG, MAIL_FETCH_CONFIG
 
 # 配置日志
 logging.basicConfig(
@@ -91,6 +91,20 @@ class MailReader:
         :return: list 邮件ID列表
         """
         try:
+            # 检查是否需要按时间范围搜索
+            days_back = MAIL_FETCH_CONFIG.get("days_back")
+            if days_back and not MAIL_FETCH_CONFIG.get("fetch_all", False):
+                from datetime import datetime, timedelta
+                # 计算日期范围
+                end_date = datetime.now()
+                start_date = end_date - timedelta(days=days_back)
+                
+                # 构建日期搜索条件
+                start_date_str = start_date.strftime("%d-%b-%Y")
+                end_date_str = end_date.strftime("%d-%b-%Y")
+                search_criteria = f'SINCE "{start_date_str}" BEFORE "{end_date_str}"'
+                logger.info(f"按时间范围搜索邮件: {start_date_str} 到 {end_date_str}")
+            
             status, messages = self.imap_client.search(None, search_criteria)
             email_ids = messages[0].split()
             logger.info(f"找到 {len(email_ids)} 封邮件")
@@ -197,11 +211,14 @@ class MailReader:
             self.select_folder(folder_name)
 
             email_ids = self.search_emails()
-            max_emails = max_emails or MAIL_CONFIG["max_emails_per_fetch"]
+            
+            # 优先使用MAIL_FETCH_CONFIG中的max_emails配置
+            max_emails = max_emails or MAIL_FETCH_CONFIG.get("max_emails") or MAIL_CONFIG["max_emails_per_fetch"]
             
             # 限制处理的邮件数量
-            if len(email_ids) > max_emails:
+            if max_emails and len(email_ids) > max_emails:
                 email_ids = email_ids[-max_emails:]  # 取最新的邮件
+                logger.info(f"限制处理邮件数量为: {max_emails}")
             
             email_info_list = []
             for email_id in email_ids:
